@@ -46,7 +46,9 @@
 
 - `ANTHROPIC_API_KEY` — Claude APIキー（サーバー専用）
 - `ANTHROPIC_CHAT_MODEL` — （任意）チャット用モデルID。未設定時はコードの既定値。
-- （Phase 2）`DATABASE_URL` / `CRON_SECRET` / 任意の `LINEWORKS_*`
+- `ANTHROPIC_CLASSIFY_MODEL` — （任意）ログ分類用の軽量モデルID。未設定時はコードの既定値。
+- `SHEETS_WEBAPP_URL` / `SHEETS_WEBAPP_TOKEN` — （任意）スプレッドシート会話ログ（GAS Web App）。両方設定でログON。手順は docs/SHEETS_LOGGING.md。
+- （Phase 2のDB/レポート）`DATABASE_URL` / `CRON_SECRET` / 任意の `LINEWORKS_*`
 
 ## 守るべき原則（非交渉）
 

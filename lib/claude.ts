@@ -24,3 +24,7 @@ export function getAnthropic(): Anthropic {
 
 /** チャット応答に使うモデルID（応答性重視）。環境変数で上書き可能。 */
 export const CHAT_MODEL = process.env.ANTHROPIC_CHAT_MODEL ?? 'claude-sonnet-4-6';
+
+/** カテゴリ/言語の分類に使うモデルID（軽量・低コスト重視）。環境変数で上書き可能。 */
+export const CLASSIFY_MODEL =
+  process.env.ANTHROPIC_CLASSIFY_MODEL ?? 'claude-haiku-4-5-20251001';

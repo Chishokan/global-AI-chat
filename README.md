@@ -61,7 +61,13 @@ lib/prompts.ts        システムプロンプト
 data/faq.json         FAQ知識ベース（正本・30項目）
 ```
 
+## 会話ログ（任意）
+
+Google スプレッドシートへ1往復ずつ会話ログを保存できます（カテゴリ・言語を自動付与）。
+GAS Web App 経由で、環境変数 `SHEETS_WEBAPP_URL` / `SHEETS_WEBAPP_TOKEN` を設定すると有効化。
+設定手順は **[`docs/SHEETS_LOGGING.md`](./docs/SHEETS_LOGGING.md)** を参照。
+
 ## ロードマップ
 
-- **Phase 2**: 会話ログ保存・カテゴリ分類・日次AIレポート（Prisma + PostgreSQL + Vercel Cron）
+- **Phase 2**: 会話ログ保存（スプレッドシート版・実装済み）→ カテゴリ分類・日次AIレポート（Prisma + PostgreSQL + Vercel Cron）
 - **Phase 3**: LINEチャネル対応・職員通知

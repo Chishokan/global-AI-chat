@@ -1,21 +1,25 @@
 /**
  * /api/chat — チャット応答エンドポイント（サーバー）。
  *
- * クライアントから「会話履歴 + やさしい日本語フラグ」を受け取り、
+ * クライアントから「会話履歴 + やさしい日本語フラグ + セッションID」を受け取り、
  * KBを注入して Claude を呼び、応答を返す。
  * APIキーはサーバー側のみ（クライアントへ出さない）。
  *
- * Phase 1 ではログ保存は行わない。Phase 2 で本ハンドラ内に
- * Conversation/Message の保存とカテゴリ分類を追加する。
+ * 応答を返した後（after）に、カテゴリ・言語を自動分類して
+ * スプレッドシートへ会話ログを1行追記する（ユーザーを待たせない）。
+ * ログ機能が未設定なら何もしない。ログ失敗はチャットを壊さない。
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { generateReply, type ChatMessage, type Role } from '@/lib/chat';
+import { classifyMessage } from '@/lib/classify';
+import { isSheetsLoggingEnabled, logConversation } from '@/lib/sheets';
 
 export const runtime = 'nodejs';
 
 interface ChatRequestBody {
   messages?: unknown;
   easyJp?: unknown;
+  sessionId?: unknown;
 }
 
 function isValidMessage(value: unknown): value is ChatMessage {
@@ -37,7 +41,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'リクエストの形式が正しくありません。' }, { status: 400 });
   }
 
-  const { messages, easyJp } = body;
+  const { messages, easyJp, sessionId } = body;
 
   if (!Array.isArray(messages) || messages.length === 0 || !messages.every(isValidMessage)) {
     return NextResponse.json(
@@ -54,10 +58,38 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const typedMessages = messages as ChatMessage[];
+    const easy = easyJp === true;
     const { reply } = await generateReply({
-      messages: messages as ChatMessage[],
-      easyJp: easyJp === true,
+      messages: typedMessages,
+      easyJp: easy,
     });
+
+    // 応答を返したあとに、分類＋スプレッドシートへのログ保存を非同期で行う。
+    // ユーザー応答の遅延にならないよう after() を使う。
+    if (isSheetsLoggingEnabled()) {
+      const question = typedMessages[typedMessages.length - 1].content;
+      const sid = typeof sessionId === 'string' ? sessionId : '';
+      after(async () => {
+        const { category, locale } = await classifyMessage(question);
+        try {
+          await logConversation({
+            sessionId: sid,
+            locale,
+            easyJp: easy,
+            category,
+            question,
+            answer: reply,
+          });
+        } catch (logErr) {
+          console.error(
+            '[/api/chat] sheets log failed:',
+            logErr instanceof Error ? logErr.message : logErr
+          );
+        }
+      });
+    }
+
     return NextResponse.json({ reply });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'unknown error';
