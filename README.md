@@ -47,6 +47,7 @@ npm run dev                 # http://localhost:3000
 ## デプロイ
 
 `git push` で Vercel が自動デプロイ。Vercel に環境変数を設定してください。
+初めての方向けの丁寧な手順は **[`docs/DEPLOY.md`](./docs/DEPLOY.md)** を参照。
 
 ## ディレクトリ
 
