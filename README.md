@@ -20,10 +20,13 @@ Next.js 15 (App Router) / React 19 / TypeScript / Anthropic Claude API / Vercel
 ## セットアップ
 
 ```bash
+nvm use                     # Node 22（.nvmrc）に揃える
 npm install
-cp .env.example .env        # ANTHROPIC_API_KEY を設定
+cp .env.example .env.local  # ANTHROPIC_API_KEY を設定（Vercel同期なら vercel env pull）
 npm run dev                 # http://localhost:3000
 ```
+
+開発環境の詳しい構築手順（Vercel同期・ブランチ運用など）は **[`docs/DEVELOPMENT.md`](./docs/DEVELOPMENT.md)** を参照。
 
 ### 環境変数
 

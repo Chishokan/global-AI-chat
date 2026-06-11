@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "description": "特定技能サポートアプリ 機能② 多言語Q&Aチャット（Phase 1 MVP）",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
