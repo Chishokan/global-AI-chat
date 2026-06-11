@@ -82,7 +82,10 @@ export default function ChatPage() {
 
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     // Enterで送信、Shift+Enterで改行（モバイルではボタン送信が主）。
-    if (e.key === 'Enter' && !e.shiftKey) {
+    // IME変換中（日本語・中国語など）のEnterは変換確定なので送信しない。
+    // isComposing が取れない環境向けに keyCode 229 もフォールバックで見る。
+    const composing = e.nativeEvent.isComposing || e.keyCode === 229;
+    if (e.key === 'Enter' && !e.shiftKey && !composing) {
       e.preventDefault();
       send();
     }
