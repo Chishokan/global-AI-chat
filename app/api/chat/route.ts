@@ -1,24 +1,30 @@
 /**
  * /api/chat — チャット応答エンドポイント（サーバー）。
  *
- * クライアントから「会話履歴 + やさしい日本語フラグ + セッションID」を受け取り、
- * KBを注入して Claude を呼び、応答を返す。
+ * クライアントから「会話履歴 + 地域 + 言語 + セッションID」を受け取り、
+ * 地域別KBを注入して Claude を呼び、応答を返す。
  * APIキーはサーバー側のみ（クライアントへ出さない）。
  *
- * 応答を返した後（after）に、カテゴリ・言語を自動分類して
+ * 応答を返した後（after）に、カテゴリを自動分類して
  * スプレッドシートへ会話ログを1行追記する（ユーザーを待たせない）。
  * ログ機能が未設定なら何もしない。ログ失敗はチャットを壊さない。
  */
 import { NextRequest, NextResponse, after } from 'next/server';
 import { generateReply, type ChatMessage, type Role } from '@/lib/chat';
-import { classifyMessage } from '@/lib/classify';
+import { classifyCategory } from '@/lib/classify';
 import { isSheetsLoggingEnabled, logConversation } from '@/lib/sheets';
+import type { Region } from '@/lib/kb';
+import type { Lang } from '@/lib/i18n';
 
 export const runtime = 'nodejs';
 
+const VALID_REGIONS: Region[] = ['sasebo', 'saikai'];
+const VALID_LANGS: Lang[] = ['ja', 'ja-easy', 'en', 'vi', 'ne', 'my', 'id'];
+
 interface ChatRequestBody {
   messages?: unknown;
-  easyJp?: unknown;
+  region?: unknown;
+  lang?: unknown;
   sessionId?: unknown;
 }
 
@@ -41,7 +47,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'リクエストの形式が正しくありません。' }, { status: 400 });
   }
 
-  const { messages, easyJp, sessionId } = body;
+  const { messages, region: regionRaw, lang: langRaw, sessionId } = body;
 
   if (!Array.isArray(messages) || messages.length === 0 || !messages.every(isValidMessage)) {
     return NextResponse.json(
@@ -57,26 +63,27 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const region: Region = VALID_REGIONS.includes(regionRaw as Region)
+    ? (regionRaw as Region)
+    : 'sasebo';
+  const lang: Lang = VALID_LANGS.includes(langRaw as Lang) ? (langRaw as Lang) : 'ja';
+
   try {
     const typedMessages = messages as ChatMessage[];
-    const easy = easyJp === true;
-    const { reply } = await generateReply({
-      messages: typedMessages,
-      easyJp: easy,
-    });
+    const { reply } = await generateReply({ messages: typedMessages, region, lang });
 
     // 応答を返したあとに、分類＋スプレッドシートへのログ保存を非同期で行う。
-    // ユーザー応答の遅延にならないよう after() を使う。
     if (isSheetsLoggingEnabled()) {
       const question = typedMessages[typedMessages.length - 1].content;
       const sid = typeof sessionId === 'string' ? sessionId : '';
       after(async () => {
-        const { category, locale } = await classifyMessage(question);
+        const category = await classifyCategory(question);
         try {
           await logConversation({
             sessionId: sid,
-            locale,
-            easyJp: easy,
+            region,
+            lang,
+            easyJp: lang === 'ja-easy',
             category,
             question,
             answer: reply,
@@ -93,8 +100,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ reply });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'unknown error';
-    // APIキー未設定などサーバー側の構成エラーはログに出すが、
-    // クライアントには詳細を返しすぎない。
     console.error('[/api/chat] error:', message);
     const isConfigError = message.includes('ANTHROPIC_API_KEY');
     return NextResponse.json(

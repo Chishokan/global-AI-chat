@@ -6,14 +6,17 @@
  * URL/トークンが未設定なら何もしない（ログ機能オフ）＝チャットは通常どおり動く。
  *
  * プライバシー: 氏名等の直接識別子は保存しない。利用者はセッションIDで扱う。
+ * 列は GAS 側でヘッダー名に合わせて追記する（列追加に強い）。
  */
 
 export interface ConversationLog {
   /** 匿名セッションID（氏名は含めない）。 */
   sessionId: string;
-  /** 検出言語コード（ja, en, vi ...）。不明なら ''。 */
-  locale: string;
-  /** やさしい日本語トグルの状態。 */
+  /** 地域（sasebo / saikai）。 */
+  region: string;
+  /** 利用者が選んだUI言語（ja, ja-easy, en, vi, ne, my, id）。 */
+  lang: string;
+  /** やさしい日本語かどうか（lang === 'ja-easy'）。 */
   easyJp: boolean;
   /** 自動分類カテゴリ（生活/手続き/学習/その他）。不明なら ''。 */
   category: string;
@@ -41,7 +44,8 @@ export async function logConversation(log: ConversationLog): Promise<void> {
     token,
     timestamp: new Date().toISOString(),
     sessionId: log.sessionId,
-    locale: log.locale,
+    region: log.region,
+    lang: log.lang,
     easyJp: log.easyJp,
     category: log.category,
     question: log.question,

@@ -13,15 +13,18 @@
  *      SHEETS_WEBAPP_URL   = その /exec URL
  *      SHEETS_WEBAPP_TOKEN = LOG_TOKEN と同じ値
  *
- * セキュリティ: token が一致しないリクエストは拒否する。
+ * 列はヘッダー名に合わせて書き込みます（新しい項目が増えても列を自動追加）。
+ * セキュリティ: token が一致しないリクエストは拒否。
  * プライバシー: 氏名は保存しない。利用者はセッションIDで扱う。
  */
 
 var SHEET_NAME = 'Logs';
-var HEADERS = [
+// 既定の列順（新規シート作成時のヘッダー）。
+var FIELDS = [
   'timestamp',
   'sessionId',
-  'locale',
+  'region',
+  'lang',
   'easyJp',
   'category',
   'question',
@@ -43,10 +46,17 @@ function getLogSheet_() {
   var sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_NAME);
-    sheet.appendRow(HEADERS);
+    sheet.appendRow(FIELDS);
     sheet.setFrozenRows(1);
   }
   return sheet;
+}
+
+function formatVal_(key, body) {
+  if (key === 'timestamp') return body.timestamp || new Date().toISOString();
+  if (key === 'easyJp') return body.easyJp ? 'TRUE' : 'FALSE';
+  var v = body[key];
+  return v === undefined || v === null ? '' : v;
 }
 
 /** 動作確認用（ブラウザでURLを開くと {ok:true} が返る）。 */
@@ -54,7 +64,7 @@ function doGet() {
   return jsonOutput_({ ok: true, service: 'global-ai-chat logger' });
 }
 
-/** Next.js の /api/chat から会話ログを受け取り、1行追記する。 */
+/** Next.js の /api/chat から会話ログを受け取り、ヘッダーに合わせて1行追記する。 */
 function doPost(e) {
   try {
     if (!e || !e.postData || !e.postData.contents) {
@@ -68,15 +78,22 @@ function doPost(e) {
     }
 
     var sheet = getLogSheet_();
-    sheet.appendRow([
-      body.timestamp || new Date().toISOString(),
-      body.sessionId || '',
-      body.locale || '',
-      body.easyJp ? 'TRUE' : 'FALSE',
-      body.category || '',
-      body.question || '',
-      body.answer || '',
-    ]);
+    var lastCol = sheet.getLastColumn();
+    var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+
+    // payload に含まれるが未登録の列を末尾に追加する（token は除く）。
+    FIELDS.concat(Object.keys(body)).forEach(function (k) {
+      if (k === 'token') return;
+      if (headers.indexOf(k) === -1) {
+        headers.push(k);
+        sheet.getRange(1, headers.length).setValue(k);
+      }
+    });
+
+    var row = headers.map(function (h) {
+      return formatVal_(h, body);
+    });
+    sheet.appendRow(row);
 
     return jsonOutput_({ ok: true });
   } catch (err) {
