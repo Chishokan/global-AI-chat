@@ -26,6 +26,7 @@ var FIELDS = [
   'region',
   'lang',
   'easyJp',
+  'bilingual',
   'category',
   'question',
   'answer',
@@ -54,7 +55,7 @@ function getLogSheet_() {
 
 function formatVal_(key, body) {
   if (key === 'timestamp') return body.timestamp || new Date().toISOString();
-  if (key === 'easyJp') return body.easyJp ? 'TRUE' : 'FALSE';
+  if (key === 'easyJp' || key === 'bilingual') return body[key] ? 'TRUE' : 'FALSE';
   var v = body[key];
   return v === undefined || v === null ? '' : v;
 }

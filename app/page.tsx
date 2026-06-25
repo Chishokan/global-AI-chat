@@ -32,6 +32,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('chat');
   const [region, setRegion] = useState<Region>('sasebo');
   const [lang, setLang] = useState<Lang>('ja');
+  const [bilingual, setBilingual] = useState(true);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -70,6 +71,7 @@ export default function App() {
           messages: history,
           region,
           lang,
+          bilingual,
           sessionId: sessionIdRef.current,
         }),
       });
@@ -410,6 +412,30 @@ export default function App() {
                   ))}
                 </select>
               </div>
+              {lang !== 'ja' && lang !== 'ja-easy' && (
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 10,
+                    marginBottom: 16,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={bilingual}
+                    onChange={(e) => setBilingual(e.target.checked)}
+                    style={{ width: 18, height: 18, marginTop: 1, accentColor: accent, flexShrink: 0 }}
+                  />
+                  <span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{L('bilingual')}</span>
+                    <span style={{ display: 'block', fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                      {L('bilingualHint')}
+                    </span>
+                  </span>
+                </label>
+              )}
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>{L('setRegion')}</div>
                 <div style={{ display: 'flex', gap: 8 }}>

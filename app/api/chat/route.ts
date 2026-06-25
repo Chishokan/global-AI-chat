@@ -25,6 +25,7 @@ interface ChatRequestBody {
   messages?: unknown;
   region?: unknown;
   lang?: unknown;
+  bilingual?: unknown;
   sessionId?: unknown;
 }
 
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'リクエストの形式が正しくありません。' }, { status: 400 });
   }
 
-  const { messages, region: regionRaw, lang: langRaw, sessionId } = body;
+  const { messages, region: regionRaw, lang: langRaw, bilingual: bilingualRaw, sessionId } = body;
 
   if (!Array.isArray(messages) || messages.length === 0 || !messages.every(isValidMessage)) {
     return NextResponse.json(
@@ -67,10 +68,11 @@ export async function POST(req: NextRequest) {
     ? (regionRaw as Region)
     : 'sasebo';
   const lang: Lang = VALID_LANGS.includes(langRaw as Lang) ? (langRaw as Lang) : 'ja';
+  const bilingual = bilingualRaw === true;
 
   try {
     const typedMessages = messages as ChatMessage[];
-    const { reply } = await generateReply({ messages: typedMessages, region, lang });
+    const { reply } = await generateReply({ messages: typedMessages, region, lang, bilingual });
 
     // 応答を返したあとに、分類＋スプレッドシートへのログ保存を非同期で行う。
     if (isSheetsLoggingEnabled()) {
@@ -84,6 +86,7 @@ export async function POST(req: NextRequest) {
             region,
             lang,
             easyJp: lang === 'ja-easy',
+            bilingual: bilingual && lang !== 'ja' && lang !== 'ja-easy',
             category,
             question,
             answer: reply,

@@ -18,6 +18,8 @@ export interface ConversationLog {
   lang: string;
   /** やさしい日本語かどうか（lang === 'ja-easy'）。 */
   easyJp: boolean;
+  /** 母国語＋日本語の併記モードだったか。 */
+  bilingual: boolean;
   /** 自動分類カテゴリ（生活/手続き/学習/その他）。不明なら ''。 */
   category: string;
   /** 利用者の質問（最新のユーザー発話）。 */
@@ -47,6 +49,7 @@ export async function logConversation(log: ConversationLog): Promise<void> {
     region: log.region,
     lang: log.lang,
     easyJp: log.easyJp,
+    bilingual: log.bilingual,
     category: log.category,
     question: log.question,
     answer: log.answer,

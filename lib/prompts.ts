@@ -17,12 +17,28 @@ export const LANG_REPLY: Record<Lang, string> = {
   id: 'Always write your reply in Indonesian (Bahasa Indonesia).',
 };
 
+/** 各言語の日本語名（併記モードの指示文で使う）。 */
+const LANG_JP_NAME: Record<Lang, string> = {
+  ja: '日本語',
+  'ja-easy': 'やさしい日本語',
+  en: '英語',
+  vi: 'ベトナム語',
+  ne: 'ネパール語',
+  my: 'ミャンマー語',
+  id: 'インドネシア語',
+};
+
+/** 日本語系（併記が不要な言語）かどうか。 */
+const isJapanese = (lang: Lang): boolean => lang === 'ja' || lang === 'ja-easy';
+
 interface ChatSystemPromptParams {
   knowledgeBase: string;
   /** 返答言語。 */
   lang: Lang;
   /** 地域名（例: 佐世保市 / 西海市）。 */
   regionName: string;
+  /** 母国語＋日本語の併記モード（日本語学習サポート）。日本語選択時は無視。 */
+  bilingual?: boolean;
 }
 
 /**
@@ -33,14 +49,26 @@ export function buildChatSystemPrompt({
   knowledgeBase,
   lang,
   regionName,
+  bilingual = false,
 }: ChatSystemPromptParams): string {
+  // 併記は「日本語以外の言語」を選んでいるときだけ有効。
+  const useBilingual = bilingual && !isJapanese(lang);
+
+  const langBlock = useBilingual
+    ? `# 返答言語（母国語＋日本語の併記 / 日本語学習サポート）
+返答は次の2部構成で書く。
+1. まず利用者の言語（${LANG_JP_NAME[lang]}）で回答する。
+2. 続けて「--- 日本語 ---」という見出しを入れ、そのあとに同じ内容の自然でやさしい日本語訳を書く。
+2つの言語をはっきり分け、モバイルでも読みやすいよう簡潔にする。`
+    : `# 返答言語
+${LANG_REPLY[lang]}`;
+
   return `あなたは、日本で働き・学ぶ外国人材を支える「日本生活サポート」アシスタントです。${regionName}で暮らす特定技能・留学生が主な対象です。
 
 # 役割
 日本での生活（ゴミ出し、近隣マナー、買い物、交通など）と、就労・各種手続きに関する一般的な疑問に、やさしく具体的に答えます。
 
-# 返答言語
-${LANG_REPLY[lang]}
+${langBlock}
 知識ベースは日本語で書かれているので、内容を理解したうえで指定の言語に翻訳して伝える。
 
 # もっとも大切なルール（正確性）
